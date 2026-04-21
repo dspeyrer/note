@@ -43,7 +43,6 @@ const editor = content => `
         <textarea autofocus="autofocus" placeholder="(empty)" spellcheck="false" autocomplete="off">${content}</textarea>
         <script>
             const editor = document.querySelector('textarea')
-            editor.setSelectionRange(editor.value.length, editor.value.length)
 
             let controller = null
             let editTout = null
@@ -84,12 +83,14 @@ const editor = content => `
 /* CSS */
 
 const stylesheet = `
-html,
-    body {
+html, body {
     height: 100%;
     box-sizing: border-box;
     margin: 0;
     background-color: #000;
+}
+
+body {
     padding: 0.5em;
 }
 
@@ -156,7 +157,9 @@ const loadDb = async () => {
 
     await Promise.all(jobs)
 
-    return db.sort((a, b) => a.title < b.title ? -1 : a.title > b.title ? 1 : 0)
+    db.sort((a, b) => a.title < b.title ? -1 : a.title > b.title ? 1 : 0)
+
+    return db
 };
 
 const server = createServer({ keepAlive: true }, async (req, res) => {
@@ -166,11 +169,11 @@ const server = createServer({ keepAlive: true }, async (req, res) => {
         let content = null
 
         if (req.url === '/' && req.method === 'GET') {
-            const sorted = db.map(ent => ent.id).sort()
+            const ids = db.map(ent => ent.id).sort((a, b) => a - b)
 
             let next = 0
 
-            for (const id of sorted)
+            for (const id of ids)
                 if (next === id)
                     next = id + 1
 
@@ -194,7 +197,7 @@ const server = createServer({ keepAlive: true }, async (req, res) => {
                     for await (const chunk of req)
                         chunks.push(Buffer.from(chunk));
 
-                    await writeFile(`db/${id}.txt`, chunks)
+                    await writeFile(join('db', `${id}.txt`), chunks)
                     content = ''
                 }
             }
